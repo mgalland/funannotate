@@ -1,29 +1,8 @@
-FROM nextgenusfs/funannotate
+FROM reslp/funannotate:1.7.4
 
-LABEL maintainer="Jon Palmer <nextgenusfs@gmail.com>"
+LABEL maintainer="Marc Galland <m.galland@uva.nl>"
 
 USER linuxbrew
-
-# # Snakemake installation. Taken from https://hub.docker.com/r/snakemake/snakemake/dockerfile
-# ENV PATH /opt/conda/bin:${PATH}
-# ENV LANG C.UTF-8
-# ENV SHELL /bin/bash
-# RUN /bin/bash -c "apt-get install wget bzip2 ca-certificates gnupg2 squashfs-tools git && \
-#     wget -O- https://neuro.debian.net/lists/xenial.us-ca.full > /etc/apt/sources.list.d/neurodebian.sources.list && \
-#     wget -O- https://neuro.debian.net/_static/neuro.debian.net.asc | apt-key add - && \
-#     install_packages singularity-container && \
-#     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-#     bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
-#     rm Miniconda3-latest-Linux-x86_64.sh && \
-#     conda create -c conda-forge -n snakemake bioconda::snakemake bioconda::snakemake-minimal --only-deps && \
-#     conda clean --all -y && \
-#     source activate snakemake && \
-#     which python && \
-#     pip install ."
-
-# RUN echo "source activate snakemake" > ~/.bashrc
-
-# ENV PATH /opt/conda/envs/snakemake/bin:${PATH}
 
 # funannotate installation
 WORKDIR /home/linuxbrew
@@ -31,20 +10,21 @@ WORKDIR /home/linuxbrew
 COPY gm_key_64.gz \
     signalp-5.0b.Linux.tar.gz \
     RepBaseRepeatMaskerEdition-20170127.tar.gz \
-    /home/linuxbrew/
+    /data/external//
 
-RUN zcat gm_key_64.gz > /home/linuxbrew/.gm_key && \
+RUN zcat gm_key_64.gz > /data/external/.gm_key && \
     tar -zxvf  signalp-5.0b.Linux.tar.gz && \ 
-    sed -i 's,/usr/cbs/bio/src/signalp-5.0b,/home/linuxbrew/signalp-5.0b,g' signalp-5.0b/bin/signalp && \
+    sed -i 's,/usr/cbs/bio/src/signalp-5.0b,/data/external/signalp-5.0b,g' signalp-5.0b/bin/signalp && \
     sed -i 's,#!/usr/bin/perl,#!/usr/bin/env perl,g' signalp-5.0b/bin/signalp
     
-RUN tar -zxvf RepBaseRepeatMaskerEdition-20170127.tar.gz -C /home/linuxbrew/repeatmasker && \
+RUN tar -zxvf RepBaseRepeatMaskerEdition-20170127.tar.gz -C /data/external/repeatmasker && \
     rm -rf RepBaseRepeatMaskerEdition-20170127.tar.gz && \
-    cd /home/linuxbrew/repeatmasker && perl ./configure < /home/linuxbrew/repeatmasker.txt && \
-    cd /home/linuxbrew/repeatmodeler && perl ./configure < /home/linuxbrew/repeatmodeler.txt && \
-    funannotate setup -d /home/linuxbrew/DB && \
-    mkdir /home/linuxbrew/data
+    cd /data/external/repeatmasker && perl ./configure < /data/external/repeatmasker.txt && \
+    cd /data/external/repeatmodeler && perl ./configure < /data/external/repeatmodeler.txt && \
+    funannotate setup -d /data/external/DB 
 
-WORKDIR /home/linuxbrew/data
+# Install Python 3.6 & Snakemake
+RUN apt-get install python-pip python-dev build-essential apt-get install -y \
+    && pip install 'snakemake==5.19.3' 
 
-ENTRYPOINT /bin/bash
+ENTRYPOINT ["snakemake", "-n"]
